@@ -1,0 +1,63 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["interactiveTransactions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum BracketStatus {
+  NOT_STARTED
+  STARTED
+  FINISHED
+}
+
+model Bracket {
+  id           String               @id @default(uuid())
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  maxPlayers   Int
+  status       BracketStatus
+  matches      Match[]
+  participants BracketParticipant[]
+}
+
+model BracketParticipant {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  bracketId String
+  playerId  String
+  bracket   Bracket  @relation(fields: [bracketId], references: [id])
+
+  @@unique([bracketId, playerId])
+}
+
+model Match {
+  id                   String       @id @default(uuid())
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  bracketId            String
+  previousLeftMatchId  String?
+  previousRightMatchId String?
+  previousLeftMatch    Match?       @relation(name: "PreviousLeftMatch", fields: [previousLeftMatchId], references: [id])
+  previousRightMatch   Match?       @relation(name: "PreviousRightMatch", fields: [previousRightMatchId], references: [id])
+  nextLeftMatch        Match[]      @relation(name: "PreviousLeftMatch")
+  nextRightMatch       Match[]      @relation(name: "PreviousRightMatch")
+  bracket              Bracket      @relation(fields: [bracketId], references: [id])
+  scores               MatchScore[]
+}
+
+model MatchScore {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  playerId  String
+  score     Int?
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id])
+
+  @@unique([playerId, matchId])
+}
